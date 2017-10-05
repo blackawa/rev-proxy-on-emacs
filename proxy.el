@@ -1,4 +1,3 @@
-(require 'web)
 (require 'deferred)
 
 (setq counter (make-hash-table :test 'equal))
