@@ -1,4 +1,5 @@
 (require 'web)
+(require 'deferred)
 
 (setq counter (make-hash-table :test 'equal))
 (setq blacklist '(""))
@@ -28,7 +29,7 @@
    method
    (lambda (con header data)
      (elnode-http-start httpcon (gethash 'status-code header) '("Content-Type" . "text/html"))
-     (elnode-http-return httpcon (format "%S" data)))
+     (elnode-http-return httpcon (format "%s" data)))
    :mode 'stream
    :url (format "http://localhost:3000%s" path)))
 
@@ -40,8 +41,18 @@
 
 (elnode-start 'proxy-handler :port 8000 :host "localhost")
 
-(web-http-call
- "GET"
- (lambda (con header data)
-   (message "%s" (gethash 'status-code header)))
- :url "http://localhost:3000")
+(let ((process
+       (web-http-call
+        "GET"
+        (lambda (con header data)
+          data)
+        :url "http://localhost:3000")))
+  (call-process process))
+
+(deferred:sync!
+  (deferred:$
+    (deferred:url-retrieve "http://localhost:3000")
+    (deferred:nextc it
+      (lambda (buf)
+        (with-current-buffer buf (buffer-string))
+        (kill-buffer buf)))))
